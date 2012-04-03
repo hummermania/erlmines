@@ -170,36 +170,54 @@ popSeqnum(SeqNum) ->
 %	return p;
 %}
 
-void ReliablePacketBuffer::incrementTimeouts(float dtime)
-{
-	core::list<BufferedPacket>::Iterator i;
-	i = m_list.begin();
-	for(; i != m_list.end(); i++){
-		i->time += dtime;
-		i->totaltime += dtime;
-	}
-}
 
-void ReliablePacketBuffer::resetTimedOuts(float timeout)
-{
-	core::list<BufferedPacket>::Iterator i;
-	i = m_list.begin();
-	for(; i != m_list.end(); i++){
-		if(i->time >= timeout)
-			i->time = 0.0;
-	}
-}
+% TODO
+incrementTimeouts(Dtime) ->
+    ok.
+    
+%void ReliablePacketBuffer::incrementTimeouts(float dtime)
+%{
+%	core::list<BufferedPacket>::Iterator i;
+%	i = m_list.begin();
+%	for(; i != m_list.end(); i++){
+%		i->time += dtime;
+%		i->totaltime += dtime;
+%	}
+%}
 
-bool ReliablePacketBuffer::anyTotaltimeReached(float timeout)
-{
-	core::list<BufferedPacket>::Iterator i;
-	i = m_list.begin();
-	for(; i != m_list.end(); i++){
-		if(i->totaltime >= timeout)
-			return true;
-	}
-	return false;
-}
+
+% TODO
+resetTimedOuts(Timeout) ->
+    ok.
+    
+%void ReliablePacketBuffer::resetTimedOuts(float timeout)
+%{
+%	core::list<BufferedPacket>::Iterator i;
+%	i = m_list.begin();
+%	for(; i != m_list.end(); i++){
+%		if(i->time >= timeout)
+%			i->time = 0.0;
+%	}
+%}
+
+
+% TODO
+anyTotaltimeReached(Timeout) -> 
+    true.
+    
+%bool ReliablePacketBuffer::anyTotaltimeReached(float timeout)
+%{
+%	core::list<BufferedPacket>::Iterator i;
+%	i = m_list.begin();
+%	for(; i != m_list.end(); i++){
+%		if(i->totaltime >= timeout)
+%			return true;
+%	}
+%	return false;
+%}
+
+
+getTimedOuts(float timeout) ->
 
 core::list<BufferedPacket> ReliablePacketBuffer::getTimedOuts(float timeout)
 {
