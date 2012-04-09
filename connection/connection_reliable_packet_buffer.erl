@@ -10,111 +10,50 @@ init() ->
     ets:new(?TABLE_ID, [public, named_table]),
     ok.
     
-insert(BufferedPacket) ->
-    <<_Header:?BASE_HEADER_SIZE,Type:?U8,SeqNum:?U16,_Other/binary>> = BufferedPacket,
-    case ets:lookup(?TABLE_ID, SeqNum) ->
-        [{SeqNum, FindPacket}] -> io:format("Reliable packet with SeqNum=~p is found in ReliablePacketBuffer~n",[SeqNum]);
-        [] -> ets:insert(?TABLE_ID, {Key, BufferedPacket}).
-    
-%void ReliablePacketBuffer::insert(BufferedPacket &p)
-%{
-%	assert(p.data.getSize() >= BASE_HEADER_SIZE+3);
-%	u8 type = readU8(&p.data[BASE_HEADER_SIZE+0]);
-%	assert(type == TYPE_RELIABLE);
-%	u16 seqnum = readU16(&p.data[BASE_HEADER_SIZE+1]);
-%
-%	// Find the right place for the packet and insert it there
-%
-%	// If list is empty, just add it
-%	if(m_list.empty())
-%	{
-%		m_list.push_back(p);
-%		// Done.
-%		return;
-%	}
-%	// Otherwise find the right place
-%	core::list<BufferedPacket>::Iterator i;
-%	i = m_list.begin();
-%	// Find the first packet in the list which has a higher seqnum
-%	for(; i != m_list.end(); i++){
-%		u16 s = readU16(&(i->data[BASE_HEADER_SIZE+1]));
-%		if(s == seqnum){
-%			throw AlreadyExistsException("Same seqnum in list");
-%		}
-%		if(seqnum_higher(s, seqnum)){
-%			break;
-%		}
-%	}
-%	// If we're at the end of the list, add the packet to the
-%	// end of the list
-%	if(i == m_list.end())
-%	{
-%		m_list.push_back(p);
-%		// Done.
-%		return;
-%	}
-%	// Insert before i
-%	m_list.insert_before(i, p);
-%}
+insert(#buffered_packet{data=BufferedPacket}) ->
+    <<_Header:?BASE_HEADER_SIZE/binary, Type:?U8,  SeqNum:?U16,_Other/binary>> = BufferedPacket,
+    io:format("Type=~p, SeqNum=~p~n",[Type,SeqNum]),
+    case ets:lookup(?TABLE_ID, SeqNum) of 
+        [{SeqNum, FindPacket}] -> 
+            io:format("Reliable packet with SeqNum=~p is found in ReliablePacketBuffer~n",[SeqNum]),
+            {exists,FindPacket};
+        [] -> ets:insert(?TABLE_ID, {SeqNum, #buffered_packet{data=BufferedPacket}}),
+            {ok,#buffered_packet{data=BufferedPacket}}
+    end.
 
-
+test_insert() ->
+    insert(#buffered_packet{data=list_to_binary([1,2,3,4,5,6,7,33,00,34,77,77,77,77])}),
+    insert(#buffered_packet{data=list_to_binary([1,2,3,4,5,6,7,33,01,11,77,77,77,77])}),
+    insert(#buffered_packet{data=list_to_binary([1,2,3,4,5,6,7,33,02,62,77,77,77,77])}),
+    insert(#buffered_packet{data=list_to_binary([1,2,3,4,5,6,7,33,67,02,77,77,77,77])}),
+    insert(#buffered_packet{data=list_to_binary([1,2,3,4,5,6,7,33,00,10,77,77,77,77])}).
     
+  
 findPacket(SeqNum) ->
     case ets:lookup(?TABLE_ID, SeqNum) of
-        [{Key, ReliablePacket}] -> {ok, ReliablePacket};
+        [{SeqNum, FindPacket}] -> {ok,  FindPacket};
         []-> {error, not_found}
     end.
+
+test_findPacket()->
+    findPacket(15874). % 8704, 2817, 579
     
-% RPBSearchResult ReliablePacketBuffer::findPacket(u16 seqnum)
-%{
-%	core::list<BufferedPacket>::Iterator i;
-%	i = m_list.begin();
-%	for(; i != m_list.end(); i++)
-%	{
-%		u16 s = readU16(&(i->data[BASE_HEADER_SIZE+1]));
-%		/*dout_con<<"findPacket(): finding seqnum="<<seqnum
-%				<<", comparing to s="<<s<<std::endl;*/
-%		if(s == seqnum)
-%			break;
-%	}
-%	return i;
-%}
-
-    
-%delete(Pid) ->
-%    ets:match_delete(?TABLE_ID, {'_', Pid}).
-
-
 print() ->
-    io:format("SeqNum",[]).
-
-%void ReliablePacketBuffer::print()
-%{
-%	core::list<BufferedPacket>::Iterator i;
-%	i = m_list.begin();
-%	for(; i != m_list.end(); i++)
-%	{
-%		u16 s = readU16(&(i->data[BASE_HEADER_SIZE+1]));
-%		dout_con<<s<<" ";
-%	}
-%}
+    ets:foldl(fun({SeqNum, _Packet},AccIn) ->
+      io:format("~p ~n", [SeqNum]),
+      AccIn
+   end, end_list, ?TABLE_ID).
 
 empty() ->
-    false.
-    
-%bool ReliablePacketBuffer::empty()
-%{
-%	return m_list.empty();
-%}
+    Size = ets:info(?TABLE_ID,size),
+    case Size of
+        0 -> true;
+        _ -> Size
+    end.
 
 size() ->
-    0.
+    ets:info(?TABLE_ID,size).
     
-%u32 ReliablePacketBuffer::size()
-%{
-%	return m_list.getSize();
-%}
-
 notFound() ->
     ets:last(?TABLE_ID).
     
@@ -124,56 +63,23 @@ notFound() ->
 %}
 
 getFirstSeqnum() ->
-    FirstPacket = ets:first(?TABLE_ID),
-    <<_Header:?BASE_HEADER_SIZE,_Type:?U8,SeqNum:?U16,_Other/binary>> = FirstPacket,
-    SeqNum.
-
-%u16 ReliablePacketBuffer::getFirstSeqnum()
-%{
-%	if(empty())
-%		throw NotFoundException("Buffer is empty");
-%	BufferedPacket p = *m_list.begin();
-%	return readU16(&p.data[BASE_HEADER_SIZE+1]);
-%}
+    ets:first(?TABLE_ID).
 
 popFirst() ->
-    FirstPacket = ets:first(?TABLE_ID),
+    FirstSeqNum = ets:first(?TABLE_ID),
+    #buffered_packet{data=FirstPacket} = ets:lookup(?TABLE_ID,FirstSeqNum),
     <<_Header:?BASE_HEADER_SIZE,_Type:?U8,SeqNum:?U16,_Other/binary>> = FirstPacket,
     ets:delete(?TABLE_ID,SeqNum),
-    FirstPacket.
-
-%BufferedPacket ReliablePacketBuffer::popFirst()
-%{
-%	if(empty())
-%		throw NotFoundException("Buffer is empty");
-%	BufferedPacket p = *m_list.begin();
-%	core::list<BufferedPacket>::Iterator i = m_list.begin();
-%	m_list.erase(i);
-%	return p;
-%}
+    #buffered_packet{data=FirstPacket}.
 
 popSeqnum(SeqNum) ->
     FindPacket = ets:lookup(?TABLE_ID,SeqNum),
-    %%<<_Header:?BASE_HEADER_SIZE,_Type:?U8,SeqNum:?U16,_Other/binary>> = FirstPacket,
     ets:delete(?TABLE_ID,SeqNum),
     FindPacket.
 
-%BufferedPacket ReliablePacketBuffer::popSeqnum(u16 seqnum)
-%{%
-%	RPBSearchResult r = findPacket(seqnum);
-%	if(r == notFound()){
-%		dout_con<<"Not found"<<std::endl;
-%		throw NotFoundException("seqnum not found in buffer");
-%	}
-%	BufferedPacket p = *r;
-%	m_list.erase(r);
-%	return p;
-%}
-
-
 % TODO
-incrementTimeouts(Dtime) ->
-    ok.
+incrementTimeouts(_Dtime) -> ok.
+    %ets:update_counter(?TABLE_ID,SeqNum,[{}]).
     
 %void ReliablePacketBuffer::incrementTimeouts(float dtime)
 %{
@@ -188,7 +94,7 @@ incrementTimeouts(Dtime) ->
 
 % TODO
 resetTimedOuts(Timeout) ->
-    ok.
+    ets:update_counter().
     
 %void ReliablePacketBuffer::resetTimedOuts(float timeout)
 %{
@@ -217,17 +123,18 @@ anyTotaltimeReached(Timeout) ->
 %}
 
 
-getTimedOuts(float timeout) ->
+getTimedOuts(timeout) ->
+    [].
 
-core::list<BufferedPacket> ReliablePacketBuffer::getTimedOuts(float timeout)
-{
-	core::list<BufferedPacket> timed_outs;
-	core::list<BufferedPacket>::Iterator i;
-	i = m_list.begin();
-	for(; i != m_list.end(); i++)
-	{
-		if(i->time >= timeout)
-			timed_outs.push_back(*i);
-	}
-	return timed_outs;
-}
+% core::list<BufferedPacket> ReliablePacketBuffer::getTimedOuts(float timeout)
+%{
+%	core::list<BufferedPacket> timed_outs;
+%	core::list<BufferedPacket>::Iterator i;
+%	i = m_list.begin();
+%	for(; i != m_list.end(); i++)
+%	{
+%		if(i->time >= timeout)
+%			timed_outs.push_back(*i);
+%	}
+%	return timed_outs;
+%}

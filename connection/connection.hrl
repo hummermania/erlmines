@@ -4,10 +4,10 @@
 -define(U32, 32/unsigned-little-integer).
 
 -record(buffered_packet, {
-  data,
-  time,
-  totaltime,
-  address
+  data,  	 % Data of the packet, including headers
+  time, 	 % Seconds from buffering the packet or re-sending
+  totaltime, % Seconds from buffering the packet
+  address    % Sender or destination
 }).
 
 -record(original_packet, {
@@ -15,7 +15,17 @@
   address
 }).
 
+-record(reliable_packet, {
+  data
+}).
 
+-record(incoming_split_packet, {
+	% Key is chunk number, value is data without headers
+	chunks,
+	chunk_count,
+	time, % Seconds from adding
+	reliable % If true, isn't deleted on timeout
+}).
 
 -define(PROTOCOL_VERSION, 7).
 -define(PROTOCOL_ID, 16#4f457403).
