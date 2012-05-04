@@ -10,6 +10,8 @@ coverage/*
 erl_crash.dump
 priv/
 test/logs/
-ebin/*.beam
+.gitignore
+rel/*
+ebin/*
 logs/*
 ebin/test.erl

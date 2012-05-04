@@ -1,13 +1,65 @@
 -module(erlmines).
 
-%%-behaviour(gen_server).
--include("erlmines.hrl").
+-behaviour(gen_server).
+-include("connection.hrl").
 
--export([server/1]).
+-export([start_link/0]).
+-export([init/1
+        , handle_call/3
+        , handle_cast/2
+        , handle_info/2
+        , terminate/2
+        , code_change/3
+        ]).
+        
+%% @type udp_server_option() =
+%%  {option(), port(), max_restarts(), time(), shutdown(),recv_length(), recv_timeout()}.
+%%  A data structure holding the options.
+%% @type option()       = [term()].
+%% @type port()         = integer().
+%% @type max_restarts() = integer().
+%% @type time()         = integer().
+%% @type shutdown()     = integer().
+%% @type recv_length()  = integer().
+%% @type recv_timeout() = integer() | infinity.
+-record(udp_server_option, {
+  option = [binary],
+  port = 4000,
+  max_restarts = 3,
+  time = 60,
+  shutdown = 2000,
+  recv_length = 0,
+  recv_timeout = infinity
+}).
 
-server(Port) ->
-    {ok,Socket} = gen_udp:open(Port,[binary]),
-    listen(Socket).
+%% Client API
+start_link() ->
+    gen_server:start_link(?MODULE, [], []).
+    
+%% Server functions
+init([]) -> 
+    case gen_udp:open(30000,[binary]) of
+        {ok,Socket} -> {ok, [Socket]};
+        {error, Reason} -> {stop, Reason}
+    end.
+        
+handle_call(_Request,From,State) ->
+    {reply, ok, State}.
+
+handle_cast({udp,Socket,Host,Port,Bin} = Message,State) ->
+    io:format("========================================~n",[]),
+    io:format("Data= ~p~n",[Bin]),
+    {noreply,State}.
+    
+handle_info(_Info,State) ->
+    {noreply,State}.
+
+terminate(_Reason, _State) ->
+    ok.
+    
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
 
 listen(Socket) ->
     receive
@@ -18,23 +70,23 @@ listen(Socket) ->
           process_packet(Bin),
           listen(Socket)          
     after 10000 ->
-		gen_udp:close(Socket),
-		{exit,timeout}     
-	end.
+        gen_udp:close(Socket),
+        {exit,timeout}     
+    end.
     
     
 process_packet(<<ProtocolId:?U32, SenderPeerId:?U16, Channel:?U8, PacketType:?U8, Data/binary>>) ->
-	case PacketType of
-		?TYPE_CONTROL -> Type = "TYPE_CONTROL (0)",
-			type_control(Data);
-		?TYPE_ORIGINAL -> Type = "TYPE_ORIGINAL(1)",
-			type_original(Data);
-		?TYPE_SPLIT -> Type = "TYPE_SPLIT(2)",
-			type_split(Data);
-		?TYPE_RELIABLE -> Type = "TYPE_RELIABLE(2)",
-			type_reliable(Data)
-	end,		
-	io:format("ProtocolId: ~p, SenderPeerId:~p, Channel:~p, PacketType: ~p, Data:~p~n",[ProtocolId,SenderPeerId,Channel,Type,Data]).
+    case PacketType of
+        ?TYPE_CONTROL -> Type = "TYPE_CONTROL (0)",
+            type_control(Data);
+        ?TYPE_ORIGINAL -> Type = "TYPE_ORIGINAL(1)",
+            type_original(Data);
+        ?TYPE_SPLIT -> Type = "TYPE_SPLIT(2)",
+            type_split(Data);
+        ?TYPE_RELIABLE -> Type = "TYPE_RELIABLE(2)",
+            type_reliable(Data)
+    end,        
+    io:format("ProtocolId: ~p, SenderPeerId:~p, Channel:~p, PacketType: ~p, Data:~p~n",[ProtocolId,SenderPeerId,Channel,Type,Data]).
 
 type_control(<<ControlType:?U8,Data/binary>>)-> ok.
 

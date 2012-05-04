@@ -4,7 +4,6 @@
 %% 
 
 -module(clientserver).
--author('Alexander Markevych <rabota.pmr@gmail.com>').
 -export([init/0]).
 
 init() ->

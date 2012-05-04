@@ -4,10 +4,15 @@
 %% 
       
 -module(connection).
--author('Alexander Markevych <rabota.pmr@gmail.com>').
 -include("connection.hrl").
 
--export([makePacket/5, makeSplitPacket/3, test/0]).
+-export([readPeerId/1,readChannel/1]).
+-export([makePacket/5,
+         makeOriginalPacket/1, 
+         makeSplitPacket/3,
+         makeAutoSplitPacket/3,
+         makeReliablePacket/2,
+         test/0]).
 
 ceiling(X) ->
     T = trunc(X),
@@ -42,7 +47,7 @@ makeSplitPacket(Data,ChunkSizeMax,SeqNum) ->
     Chunks = makeSplitPacketList(MaxDataSize, SeqNum, ChunkCount, 0, Data),
     Chunks.
 
-makeSplitPacketList(MaxDataSize, SeqNum, ChunkCount, ChunkCount, Data) ->[];
+makeSplitPacketList(_MaxDataSize, _SeqNum, ChunkCount, ChunkCount, _Data) ->[];
 makeSplitPacketList(MaxDataSize, SeqNum, ChunkCount, ChunkNum, Data) ->
     DataSize = byte_size(Data),
     ChunkDataSize = case MaxDataSize - DataSize < 0 of
@@ -58,7 +63,7 @@ test() ->
     
 % Depending on size, make a TYPE_ORIGINAL or TYPE_SPLIT packet
 % Increments split_seqnum if a split packet is made
-makeAutoSplitPacket(Data,ChunkSizeMax,SplitSeqNum) -> 
+makeAutoSplitPacket(_Data,_ChunkSizeMax,_SplitSeqNum) -> 
     todo.
     
 % core::list<SharedBuffer<u8> > makeAutoSplitPacket(

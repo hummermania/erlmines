@@ -1,9 +1,11 @@
-{application, erlmines,
-  [{description, "Minetest server written on Erlang"},
-   {vsn, "0.0.0"},
-   {modules, [erlmines,erlmines_app,erlmines_sup,clientserver]},
-   {registered, [erlmines]},
-   {applications, [kernel, stdlib]},
-   {mod, {erlmines_app, []}},
-   {start_phases, []}
-  ]}.
+{application,erlmines,
+             [{description,[]},
+              {vsn,"1"},
+              {registered,[erlmines_app,erlmines_sup,erlmines]},
+              {applications,[kernel,stdlib]},
+              {mod,{erlmines_app,[]}},
+              {env,[]},
+              {modules,[clientserver,connection,connection_channel,
+                        connection_incoming_split_buffer,
+                        connection_reliable_packet_buffer,erlmines,
+                        erlmines_app,erlmines_sup,udp_server]}]}.

@@ -3,23 +3,29 @@
 %% Copyright (C) 2012 hummermania, Markevych Alexander <rabota.pmr@gmail.com>
 %% 
 
--module(connection_incoming_split_buffer).
--author('Alexander Markevych <rabota.pmr@gmail.com>').     
+-module(connection_incoming_split_buffer). 
+-include("connection.hrl").
+    
+-export([init/1, insert/3, removeUnreliableTimedOuts/1]).
 
--export([insert/2, removeUnreliableTimedOuts/2]).
-
-%-define(TABLE_ID, ?MODULE).
 
 init(Table) ->
     ets:new(Table, [public, named_table]),
     ok.
 
-insert(Table, BufferedPacket, Reliable) -> 
-    HeaderSize = ?BASE_HEADER_SIZE+7,
-    <<_Header:?BASE_HEADER_SIZE, Type:?U8, SeqNum:?U16, ChunkCount:?U16, ChunkNum:?U16, _Other/binary>> = BufferedPacket,
-    case ets:lookup(Table, SeqNum) ->
-        [{SeqNum, FindPacket}] -> io:format("IncomingSplitPacket with SeqNum=~p is found in ReliablePacketBuffer~n",[SeqNum]);
-        [] -> ets:insert(Table, {SeqNum, BufferedPacket}).
+% TODO: Split buffer need to more learning and understanding
+
+insert(Table, BufferedPacket, _Reliable) -> 
+    _HeaderSize = ?BASE_HEADER_SIZE + 7,
+    <<_Header:?BASE_HEADER_SIZE, _Type:?U8, SeqNum:?U16, _ChunkCount:?U16,
+               _ChunkNum:?U16, _Other/binary>> = BufferedPacket,
+    case ets:lookup(Table, SeqNum) of 
+        [{SeqNum, _FindPacket}] ->
+            io:format("IncomingSplitPacket with SeqNum=~p is found 
+                       in ReliablePacketBuffer~n",[SeqNum]);
+        [] -> 
+            ets:insert(Table, {SeqNum, BufferedPacket})
+    end.
 %
 %   This will throw a GotSplitPacketException when a full
 %   split packet is constructed.
@@ -100,7 +106,7 @@ insert(Table, BufferedPacket, Reliable) ->
 %   return fulldata;
 % }
 
-removeUnreliableTimedOuts(Table) -> ok.
+removeUnreliableTimedOuts(_Table) -> ok.
 
 % void IncomingSplitBuffer::removeUnreliableTimedOuts(float dtime, float timeout)
 % {

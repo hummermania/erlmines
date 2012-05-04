@@ -3,9 +3,15 @@
 %% Copyright (C) 2012 hummermania, Markevych Alexander <rabota.pmr@gmail.com>
 %% 
 -module(connection_reliable_packet_buffer).
--author('Alexander Markevych <rabota.pmr@gmail.com>').
 -include("connection.hrl").
--compile(export_all).
+
+-export([init/1, insert/2, findPacket/2, print/1, empty/1, 
+    size/1, notFound/1, getFirstSeqnum/1,
+    popFirst/1, popSeqnum/2,
+    incrementTimedOuts/2, resetTimedOuts/2,
+    anyTotaltimeReached/2, getTimedOuts/2]).
+         
+-export([test_insert/1, test_findPacket/1, test_increment/0]).
 
 %-define(TABLE_ID, ?MODULE).
 
@@ -80,7 +86,7 @@ popSeqnum(Table, SeqNum) ->
     ets:delete(Table, SeqNum),
     FindPacket.
 
-incrementTimeouts(Table, Dtime) ->
+incrementTimedOuts(Table, Dtime) ->
     ets:foldl(fun({SeqNum, Packet},AccIn) ->
         #buffered_packet{data = Data, time = Time, totaltime = TotalTime, address = Address} = Packet,
         ets:update_element(Table, SeqNum,
@@ -92,7 +98,7 @@ test_increment()->
     init(rpb_test),
     test_insert(rpb_test),
     print(rpb_test),
-    incrementTimeouts(rpb_test, 35),
+    incrementTimedOuts(rpb_test, 35),
     print(rpb_test).
     
 resetTimedOuts(Table, Timeout) ->

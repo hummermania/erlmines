@@ -3,7 +3,6 @@
 %% Copyright (C) 2012 hummermania, Markevych Alexander <rabota.pmr@gmail.com>
 %% 
 -module(connection_channel).
--author('Alexander Markevych <rabota.pmr@gmail.com>').
 
 -compile(export_all).
 
