@@ -1,0 +1,12 @@
+{application, erlmines,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, [erlmines_app, erlmines_sup, erlmines]},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { erlmines_app, []}},
+  {env, []}
+ ]}.
