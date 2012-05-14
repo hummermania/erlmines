@@ -1,11 +1,11 @@
 {application,erlmines,
              [{description,[]},
-              {vsn,"1"},
+              {vsn,"0.0.1"},
               {registered,[erlmines_app,erlmines_sup,erlmines]},
               {applications,[kernel,stdlib]},
               {mod,{erlmines_app,[]}},
               {env,[]},
-              {modules,[clientserver,connection,connection_channel,
-                        connection_incoming_split_buffer,
+              {modules,[clientserver,connection,connection_channels,
+                        connection_incoming_split_buffer,connection_peers,
                         connection_reliable_packet_buffer,erlmines,
-                        erlmines_app,erlmines_sup,udp_server]}]}.
+                        erlmines_app,erlmines_sup]}]}.

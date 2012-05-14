@@ -2,7 +2,7 @@
 %% erlmines - The minetest server written in Erlang
 %% Copyright (C) 2012 hummermania, Markevych Alexander <rabota.pmr@gmail.com>
 %% 
--module(connection_channel).
+-module(connection_channels).
 
 -compile(export_all).
 

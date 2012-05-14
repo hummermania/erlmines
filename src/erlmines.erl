@@ -44,14 +44,24 @@ init([]) ->
     end.
         
 handle_call(_Request,From,State) ->
+    error_logger:info_report("handle_call"),
+    %% io:format("handle_call ========================================~n",[]),
     {reply, ok, State}.
 
 handle_cast({udp,Socket,Host,Port,Bin} = Message,State) ->
-    io:format("========================================~n",[]),
-    io:format("Data= ~p~n",[Bin]),
+    error_logger:info_report("handle_cast1"),
+    %% io:format("handle_cast ========================================~n",[]),
+    %% io:format("Data= ~p~n",[Bin]),
+    {noreply,State};
+    
+handle_cast(_Msg, State) ->
+    error_logger:info_report("handle_cast2"),
+    %% io:format("handle_cast ~n",[]),
+    %% io:format("Data= ~p~n",[Bin]),
     {noreply,State}.
     
-handle_info(_Info,State) ->
+handle_info(UdpMsg,State) ->
+    process_packet(UdpMsg),
     {noreply,State}.
 
 terminate(_Reason, _State) ->
@@ -60,22 +70,11 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-
-listen(Socket) ->
-    receive
-        %%{udp,Socket,Host,Port,Bin} = Message ->
-        {udp,Socket,_,_,Bin} ->
-          io:format("========================================~n",[]),
-          io:format("Data= ~p~n",[Bin]), 
-          process_packet(Bin),
-          listen(Socket)          
-    after 10000 ->
-        gen_udp:close(Socket),
-        {exit,timeout}     
-    end.
-    
-    
-process_packet(<<ProtocolId:?U32, SenderPeerId:?U16, Channel:?U8, PacketType:?U8, Data/binary>>) ->
+process_packet({udp,Socket,Host,Port,Bin}) ->
+    io:format("========================================~n",[]),
+    % io:format("Host = ~p, Port = ~p~n",[Host,Port]), 
+    <<ProtocolId:?U32, SenderPeerId:?U16, Channel:?U8, 
+        PacketType:?U8, Data/binary>> = Bin,
     case PacketType of
         ?TYPE_CONTROL -> Type = "TYPE_CONTROL (0)",
             type_control(Data);
@@ -86,7 +85,9 @@ process_packet(<<ProtocolId:?U32, SenderPeerId:?U16, Channel:?U8, PacketType:?U8
         ?TYPE_RELIABLE -> Type = "TYPE_RELIABLE(2)",
             type_reliable(Data)
     end,        
-    io:format("ProtocolId: ~p, SenderPeerId:~p, Channel:~p, PacketType: ~p, Data:~p~n",[ProtocolId,SenderPeerId,Channel,Type,Data]).
+    %io:format("ProtocolId: ~p, SenderPeerId:~p, Channel:~p, PacketType: ~p,~n Data:~p~n",[ProtocolId,SenderPeerId,Channel,Type,Data]).
+    io:format("SenderPeerId:~p, Channel:~p, PacketType: ~p,~n Data:~p~n",
+        [SenderPeerId,Channel,Type,Data]).
 
 type_control(<<ControlType:?U8,Data/binary>>)-> ok.
 
