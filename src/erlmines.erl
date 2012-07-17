@@ -42,27 +42,25 @@ init([]) ->
         {ok,Socket} -> {ok, [Socket]};
         {error, Reason} -> {stop, Reason}
     end.
-        
-handle_call(_Request,From,State) ->
-    error_logger:info_report("handle_call"),
-    %% io:format("handle_call ========================================~n",[]),
-    {reply, ok, State}.
 
-handle_cast({udp,Socket,Host,Port,Bin} = Message,State) ->
-    error_logger:info_report("handle_cast1"),
-    %% io:format("handle_cast ========================================~n",[]),
-    %% io:format("Data= ~p~n",[Bin]),
-    {noreply,State};
-    
+set_socket(Peer, Socket) when is_pid(Peer) andalso is_port(Socket) ->
+  gen_tcp:controlling_process(Socket, Peer),
+  gen_server:call(Peer, {set_socket, Socket}).
+        
+handle_call({set_socket, Socket}, _From, State) ->
+  inet:setopts(Socket, [{packet,raw},{active,once}]),
+  {reply, ok, State}.
+
 handle_cast(_Msg, State) ->
-    error_logger:info_report("handle_cast2"),
-    %% io:format("handle_cast ~n",[]),
-    %% io:format("Data= ~p~n",[Bin]),
+    error_logger:info_report("handle_cast"),
     {noreply,State}.
-    
-handle_info(UdpMsg,State) ->
-    process_packet(UdpMsg),
-    {noreply,State}.
+
+handle_info({udp, Socket, _IP, _InPortNo, Bin} = UdpMsg, State) ->
+  inet:setopts(Socket, [{active,once}]),
+  process_packet(UdpMsg),
+  %%{ok, Decoder1, Frames} = decode(Bin, Decoder),
+  %%[Consumer ! Frame || Frame <- Frames],
+  {noreply, State}.
 
 terminate(_Reason, _State) ->
     ok.
