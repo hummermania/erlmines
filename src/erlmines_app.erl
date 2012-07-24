@@ -7,8 +7,8 @@
 -behaviour(application).
 -export([start/2, stop/1]).
 
-start(_Type, StartArgs) ->
-  erlmines_sup:start_link(StartArgs).
+start(normal, _Args) ->
+  erlmines_sup:start_link().
   
 stop(_State) ->
   ok.

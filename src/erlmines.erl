@@ -1,7 +1,6 @@
 -module(erlmines).
 
 -behaviour(gen_server).
--include("connection.hrl").
 
 -export([start_link/0]).
 -export([init/1
@@ -12,89 +11,34 @@
         , code_change/3
         ]).
         
-%% @type udp_server_option() =
-%%  {option(), port(), max_restarts(), time(), shutdown(),recv_length(), recv_timeout()}.
-%%  A data structure holding the options.
-%% @type option()       = [term()].
-%% @type port()         = integer().
-%% @type max_restarts() = integer().
-%% @type time()         = integer().
-%% @type shutdown()     = integer().
-%% @type recv_length()  = integer().
-%% @type recv_timeout() = integer() | infinity.
--record(udp_server_option, {
-  option = [binary],
-  port = 4000,
-  max_restarts = 3,
-  time = 60,
-  shutdown = 2000,
-  recv_length = 0,
-  recv_timeout = infinity
-}).
-
 %% Client API
 start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+    gen_server:start_link({local,?MODULE}, ?MODULE, [], []).
     
 %% Server functions
-init([]) -> 
-    case gen_udp:open(30000,[binary]) of
-        {ok,Socket} -> {ok, [Socket]};
-        {error, Reason} -> {stop, Reason}
-    end.
-        
-handle_call(_Request,From,State) ->
-    error_logger:info_report("handle_call"),
-    %% io:format("handle_call ========================================~n",[]),
+init(_Args) ->
+	io:format("===erlmines:init===~n",[]),
+	erlang:process_flag(trap_exit, true),
+	io:format("erlmines has started (~w)~n", [self()]),
+	{ok,[]}.
+
+    
+handle_call(_Msg, _From, State) ->
     {reply, ok, State}.
 
-handle_cast({udp,Socket,Host,Port,Bin} = Message,State) ->
-    error_logger:info_report("handle_cast1"),
-    %% io:format("handle_cast ========================================~n",[]),
-    %% io:format("Data= ~p~n",[Bin]),
-    {noreply,State};
-    
 handle_cast(_Msg, State) ->
-    error_logger:info_report("handle_cast2"),
-    %% io:format("handle_cast ~n",[]),
-    %% io:format("Data= ~p~n",[Bin]),
-    {noreply,State}.
-    
-handle_info(UdpMsg,State) ->
-    process_packet(UdpMsg),
+    %error_logger:info_report("handle_cast"),
     {noreply,State}.
 
+handle_info(_Msg, State) ->
+    {noreply, State}.
+
 terminate(_Reason, _State) ->
+	io:format("===erlmines:terminate===~n",[]),
     ok.
     
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-process_packet({udp,Socket,Host,Port,Bin}) ->
-    io:format("========================================~n",[]),
-    % io:format("Host = ~p, Port = ~p~n",[Host,Port]), 
-    <<ProtocolId:?U32, SenderPeerId:?U16, Channel:?U8, 
-        PacketType:?U8, Data/binary>> = Bin,
-    case PacketType of
-        ?TYPE_CONTROL -> Type = "TYPE_CONTROL (0)",
-            type_control(Data);
-        ?TYPE_ORIGINAL -> Type = "TYPE_ORIGINAL(1)",
-            type_original(Data);
-        ?TYPE_SPLIT -> Type = "TYPE_SPLIT(2)",
-            type_split(Data);
-        ?TYPE_RELIABLE -> Type = "TYPE_RELIABLE(2)",
-            type_reliable(Data)
-    end,        
-    %io:format("ProtocolId: ~p, SenderPeerId:~p, Channel:~p, PacketType: ~p,~n Data:~p~n",[ProtocolId,SenderPeerId,Channel,Type,Data]).
-    io:format("SenderPeerId:~p, Channel:~p, PacketType: ~p,~n Data:~p~n",
-        [SenderPeerId,Channel,Type,Data]).
-
-type_control(<<ControlType:?U8,Data/binary>>)-> ok.
-
-type_original(Data)-> ok.
-type_split(<<SeqNum:?U16,ChunkCount:?U16,ChunkNum:?U16,Data/binary>>)-> ok.
-type_reliable(<<SeqNum:?U16,Data/binary>>)-> ok.
-
 
 
 
